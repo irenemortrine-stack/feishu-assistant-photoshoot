@@ -8,7 +8,6 @@ from datetime import date
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from notion_client import Client
-import anthropic
 
 env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
 load_dotenv(dotenv_path=env_path)
