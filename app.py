@@ -36,7 +36,8 @@ AMAP_KEY = 'aeef7bcd2426d11af7c37ef7f7000c59'
 assert DATABASE_ID, 'DATABASE_ID 未配置，请检查 .env'
 
 notion = Client(auth=NOTION_TOKEN)
-ai = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY', ''))
+from openai import OpenAI
+ai = OpenAI(api_key=os.getenv('DEEPSEEK_API_KEY', ''), base_url='https://api.deepseek.com')
 
 
 # ─── 飞书基础工具 ────────────────────────────────────────────
@@ -98,12 +99,12 @@ def process_with_ai(user_text):
 {{"location": "武康路", "location_type": "室外", "diary": "日记内容...", "tip": "小贴士内容"}}"""
 
     try:
-        message = ai.messages.create(
-            model='claude-sonnet-4-6',
+        message = ai.chat.completions.create(
+            model='deepseek-chat',
             max_tokens=512,
             messages=[{'role': 'user', 'content': prompt}]
         )
-        raw = message.content[0].text
+        raw = message.choices[0].message.content
         print(f'[AI raw response] {raw}')
         raw = raw.replace('```json', '').replace('```', '').strip()
         try:
@@ -306,12 +307,12 @@ def generate_shooting_guide_by_theme(theme, notion_prefs, origin_name='', weathe
 ]"""
 
     try:
-        message = ai.messages.create(
-            model='claude-sonnet-4-6',
+        message = ai.chat.completions.create(
+            model='deepseek-chat',
             max_tokens=600,
             messages=[{'role': 'user', 'content': prompt}]
         )
-        raw = message.content[0].text.strip()
+        raw = message.choices[0].message.content.strip()
         raw = raw.replace('```json', '').replace('```', '').strip()
         return json.loads(raw)
     except Exception as e:

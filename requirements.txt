@@ -2,4 +2,4 @@ flask
 requests
 python-dotenv
 notion-client
-anthropic
+openai
