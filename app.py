@@ -327,17 +327,17 @@ def generate_shooting_guide_by_theme(theme, notion_prefs, origin_name='', weathe
 
 def fetch_nearby_pois(origin_coord, theme, radius=20000):
     """用高德周边搜索获取真实 POI 列表"""
-    # 根据主题映射搜索关键词
+    # 根据主题映射：(keywords, types)
+    # 高德餐饮类型码：050000=餐饮, 050100=中餐, 050200=外国餐厅, 050300=快餐, 050400=休闲餐饮
+    food_themes = ['美食', '拍饭', '漂亮饭', '食物']
+    is_food = any(k in theme for k in food_themes)
+
     keyword_map = {
         '人像': '公园|老街|咖啡馆|艺术区|花园',
         '建筑': '历史建筑|老街|文化园|艺术馆|工业遗址',
         '街拍': '老街|步行街|市集|文创园|胡同',
         '风光': '公园|湖泊|山|植物园|湿地',
         '夜景': '天桥|观景台|商业街|滨水',
-        '美食': '餐厅|咖啡馆|餐饮',
-        '拍饭': '餐厅|咖啡馆|餐饮',
-        '漂亮饭': '餐厅|咖啡馆|餐饮',
-        '食物': '餐厅|咖啡馆|餐饮',
     }
     keywords = '公园|老街|艺术区|文创园|历史建筑'
     for k, v in keyword_map.items():
@@ -347,15 +347,19 @@ def fetch_nearby_pois(origin_coord, theme, radius=20000):
 
     pois = []
     try:
-        resp = requests.get('https://restapi.amap.com/v3/place/around', params={
+        params = {
             'key': AMAP_KEY,
             'location': origin_coord,
-            'keywords': keywords,
             'radius': radius,
             'offset': 20,
             'page': 1,
             'extensions': 'base'
-        })
+        }
+        if is_food:
+            params['types'] = '050000'
+        else:
+            params['keywords'] = keywords
+        resp = requests.get('https://restapi.amap.com/v3/place/around', params=params)
         data = resp.json()
         for poi in data.get('pois', []):
             pois.append({
