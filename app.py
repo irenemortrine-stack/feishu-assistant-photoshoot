@@ -280,6 +280,10 @@ def generate_shooting_guide_by_theme(theme, notion_prefs, origin_name='', weathe
 
     exclude_context = f"\n注意：以下地点已经推荐过，请勿重复推荐：{', '.join(exclude_places)}" if exclude_places else ""
 
+    if exclude_places:
+        nearby_pois = [p for p in nearby_pois if p.get('name', '') not in exclude_places]
+        print(f'[exclude] 排除上次推荐地点后剩余 {len(nearby_pois)} 个')
+
     if nearby_pois:
         poi_list = '\n'.join([f"- {p['name']}（{p['address']}）" for p in nearby_pois[:20]])
         poi_context = f"以下是用户20km内的真实地点列表，请从中挑选3个最适合「{theme}」主题拍摄的地点，优先选择有故事感、光影独特、不过度商业化的地方：\n{poi_list}{exclude_context}"
