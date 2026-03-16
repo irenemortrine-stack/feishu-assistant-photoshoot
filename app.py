@@ -256,7 +256,7 @@ def query_notion_prefs(destination):
         return None
 
 
-def generate_shooting_guide_by_theme(theme, notion_prefs, origin_name='', weather_info='', nearby_pois=None):
+def generate_shooting_guide_by_theme(theme, notion_prefs, origin_name='', weather_info='', nearby_pois=None, exclude_places=None):
     """根据拍摄主题和起点生成3个附近地点建议"""
     from datetime import datetime
     now = datetime.now()
@@ -278,11 +278,13 @@ def generate_shooting_guide_by_theme(theme, notion_prefs, origin_name='', weathe
     pref_context = f"偏好库参考：\n{notion_prefs}" if notion_prefs else ""
     location_context = f"用户当前位置：{origin_name}。" if origin_name else ""
 
+    exclude_context = f"\n注意：以下地点已经推荐过，请勿重复推荐：{', '.join(exclude_places)}" if exclude_places else ""
+
     if nearby_pois:
         poi_list = '\n'.join([f"- {p['name']}（{p['address']}）" for p in nearby_pois[:20]])
-        poi_context = f"以下是用户20km内的真实地点列表，请从中挑选3个最适合「{theme}」主题拍摄的地点，优先选择有故事感、光影独特、不过度商业化的地方：\n{poi_list}"
+        poi_context = f"以下是用户20km内的真实地点列表，请从中挑选3个最适合「{theme}」主题拍摄的地点，优先选择有故事感、光影独特、不过度商业化的地方：\n{poi_list}{exclude_context}"
     else:
-        poi_context = f"请推荐3个适合「{theme}」主题的真实拍摄地点，不要过度商业化。"
+        poi_context = f"请推荐3个适合「{theme}」主题的真实拍摄地点，不要过度商业化。{exclude_context}"
 
     prompt = f"""你是一位资深摄影导师。用户想进行「{theme}」主题拍摄。
 当前时间：{now.strftime('%H:%M')}，{light_tip}
@@ -400,7 +402,7 @@ def handle_departure(theme, chat_id, msg_id):
     send_reply(msg_id, f'📸 收到！主题：{theme}\n\n请在飞书里发送你的📍当前位置，我将基于你的位置推荐附近拍摄地点。')
 
 
-def process_departure(theme, origin_coord, msg_id):
+def process_departure(theme, origin_coord, msg_id, exclude_places=None):
     """根据拍摄主题和起点坐标，推荐附近地点"""
     import urllib.parse
 
@@ -440,7 +442,7 @@ def process_departure(theme, origin_coord, msg_id):
     except Exception as e:
         print(f'[weather error] {e}')
 
-    places = generate_shooting_guide_by_theme(theme, notion_prefs, origin_name, weather_info, nearby_pois)
+    places = generate_shooting_guide_by_theme(theme, notion_prefs, origin_name, weather_info, nearby_pois, exclude_places)
     places = verify_places_with_amap(places, city=city_name)
 
     elements = [
@@ -495,7 +497,7 @@ def process_departure(theme, origin_coord, msg_id):
     # 存储换一换上下文
     chat_id_from_msg = resp.json().get('data', {}).get('chat_id', '')
     if chat_id_from_msg:
-        pending_refresh[chat_id_from_msg] = (theme, origin_coord, weather_info, origin_name)
+        pending_refresh[chat_id_from_msg] = (theme, origin_coord, weather_info, origin_name, [p.get('place', '') for p in places[:3]])
 
 
 def handle_card_action(action_data):
@@ -522,10 +524,11 @@ def handle_card_action(action_data):
 
         import urllib.parse
         import random
+        exclude_places = value.get('last_places', [])
         notion_prefs = query_notion_prefs(theme)
         nearby_pois = fetch_nearby_pois(origin_coord, theme)
         random.shuffle(nearby_pois)
-        places = generate_shooting_guide_by_theme(theme, notion_prefs, origin_name, weather_info, nearby_pois)
+        places = generate_shooting_guide_by_theme(theme, notion_prefs, origin_name, weather_info, nearby_pois, exclude_places)
         places = verify_places_with_amap(places)
 
         icons = ['①', '②', '③']
@@ -766,10 +769,10 @@ def process_event(data):
             # 换一换
             elif user_text.strip() == '换一换':
                 if chat_id in pending_refresh:
-                    theme, origin_coord, weather_info, origin_name = pending_refresh[chat_id]
+                    theme, origin_coord, weather_info, origin_name, last_places = pending_refresh[chat_id]
                     threading.Thread(
                         target=process_departure,
-                        args=(theme, origin_coord, msg_id),
+                        args=(theme, origin_coord, msg_id, last_places),
                         daemon=True
                     ).start()
                 else:
