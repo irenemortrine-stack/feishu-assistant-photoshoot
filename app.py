@@ -367,8 +367,9 @@ def fetch_nearby_pois(origin_coord, theme, radius=20000):
         if is_food:
             params['types'] = '050000'
         elif is_exhibition:
-            # 博物馆|展览馆|科技馆|美术馆|纪念馆
-            params['types'] = '080100|080200|080300|080400|080500'
+            # 博物馆,展览馆,科技馆,美术馆,纪念馆
+            params['types'] = '080100,080200,080300,080400,080500'
+            params['radius'] = 50000  # 展馆稀少，扩大到50km
         else:
             params['keywords'] = keywords
         resp = requests.get('https://restapi.amap.com/v3/place/around', params=params)
