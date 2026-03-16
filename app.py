@@ -291,10 +291,13 @@ def generate_shooting_guide_by_theme(theme, notion_prefs, origin_name='', weathe
         poi_context = f"请推荐3个适合「{theme}」主题的真实拍摄地点，不要过度商业化。{exclude_context}"
 
     food_themes = ['美食', '拍饭', '漂亮饭', '食物', '餐厅']
+    exhibition_themes = ['展', '展览', '博物馆', '美术馆', '艺术展']
     is_food_theme = any(k in theme for k in food_themes)
+    is_exhibition_theme = any(k in theme for k in exhibition_themes)
     food_instruction = "\n【重要】这是美食拍摄主题，必须推荐真实餐厅或咖啡馆，要求环境有设计感、光线好、在小红书或大众点评上有颜值口碑。不要推荐公园、景点或户外场地。" if is_food_theme else ""
+    exhibition_instruction = "\n【重要】这是展览拍摄主题，必须推荐真实的博物馆、美术馆、展览馆，优先选择当前有在展展览的场馆。介绍时请说明该场馆的特色展览或常设展览内容，以及适合拍摄的展厅或区域。不要推荐公园或普通景点。" if is_exhibition_theme else ""
 
-    prompt = f"""你是一位资深摄影导师。用户想进行「{theme}」主题拍摄。{food_instruction}
+    prompt = f"""你是一位资深摄影导师。用户想进行「{theme}」主题拍摄。{food_instruction}{exhibition_instruction}
 当前时间：{now.strftime('%H:%M')}，{light_tip}
 {weather_context}
 {location_context}
@@ -334,7 +337,9 @@ def fetch_nearby_pois(origin_coord, theme, radius=20000):
     # 根据主题映射：(keywords, types)
     # 高德餐饮类型码：050000=餐饮, 050100=中餐, 050200=外国餐厅, 050300=快餐, 050400=休闲餐饮
     food_themes = ['美食', '拍饭', '漂亮饭', '食物']
+    exhibition_themes = ['展', '展览', '博物馆', '美术馆', '艺术展']
     is_food = any(k in theme for k in food_themes)
+    is_exhibition = any(k in theme for k in exhibition_themes)
 
     keyword_map = {
         '人像': '公园|老街|咖啡馆|艺术区|花园',
@@ -361,6 +366,9 @@ def fetch_nearby_pois(origin_coord, theme, radius=20000):
         }
         if is_food:
             params['types'] = '050000'
+        elif is_exhibition:
+            # 博物馆|展览馆|科技馆|美术馆|纪念馆
+            params['types'] = '080100|080200|080300|080400|080500'
         else:
             params['keywords'] = keywords
         resp = requests.get('https://restapi.amap.com/v3/place/around', params=params)
