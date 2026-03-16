@@ -286,7 +286,11 @@ def generate_shooting_guide_by_theme(theme, notion_prefs, origin_name='', weathe
     else:
         poi_context = f"请推荐3个适合「{theme}」主题的真实拍摄地点，不要过度商业化。{exclude_context}"
 
-    prompt = f"""你是一位资深摄影导师。用户想进行「{theme}」主题拍摄。
+    food_themes = ['美食', '拍饭', '漂亮饭', '食物', '餐厅']
+    is_food_theme = any(k in theme for k in food_themes)
+    food_instruction = "\n【重要】这是美食拍摄主题，必须推荐真实餐厅或咖啡馆，要求环境有设计感、光线好、在小红书或大众点评上有颜值口碑。不要推荐公园、景点或户外场地。" if is_food_theme else ""
+
+    prompt = f"""你是一位资深摄影导师。用户想进行「{theme}」主题拍摄。{food_instruction}
 当前时间：{now.strftime('%H:%M')}，{light_tip}
 {weather_context}
 {location_context}
@@ -330,6 +334,10 @@ def fetch_nearby_pois(origin_coord, theme, radius=20000):
         '街拍': '老街|步行街|市集|文创园|胡同',
         '风光': '公园|湖泊|山|植物园|湿地',
         '夜景': '天桥|观景台|商业街|滨水',
+        '美食': '餐厅|咖啡馆|餐饮',
+        '拍饭': '餐厅|咖啡馆|餐饮',
+        '漂亮饭': '餐厅|咖啡馆|餐饮',
+        '食物': '餐厅|咖啡馆|餐饮',
     }
     keywords = '公园|老街|艺术区|文创园|历史建筑'
     for k, v in keyword_map.items():
